@@ -1,241 +1,377 @@
-create database SiiCA_ComiteAcademico
-go
-use SiiCA_ComiteAcademico
-go
+create database SiiCA_ComiteAcademico;
+use SiiCA_ComiteAcademico;
 
--- CREACION DE TABLAS
+CREATE TABLE Estatuses (
+    Clave CHAR(1) NOT NULL,
+    Descripcion VARCHAR(20) NOT NULL,
+    PRIMARY KEY (Clave)
+);
 
-create table Instituto
-(
-	Clave int not null,
-	Nombre nvarchar(50) unique not null,
-	Direccion nvarchar(50) unique not null,
-	PaginaWeb nvarchar(50) not null,
+CREATE TABLE Usuario (
+    Numero INT NOT NULL,
+    NombreUsuario VARCHAR(50) NOT NULL,
+    Contrasena VARCHAR(30) NOT NULL,
+    PRIMARY KEY (Numero),
+    UNIQUE (NombreUsuario)
+);
+
+CREATE TABLE Instituto (
+    Clave INT NOT NULL,
+    Nombre VARCHAR(50) NOT NULL,
+    Direccion VARCHAR(50) NOT NULL,
+    PaginaWeb VARCHAR(50) NOT NULL,
+    PRIMARY KEY (Clave),
+    UNIQUE (Nombre),
+    UNIQUE (Direccion)
+);
+
+CREATE TABLE Coordinador (
+    NoEmp INT NOT NULL,
+    Nombre VARCHAR(50) NOT NULL,
+    ApellidoPaterno VARCHAR(50),
+    ApellidoMaterno VARCHAR(50),
+    Telefono VARCHAR(20) NOT NULL,
+    CorreoInst VARCHAR(50) NOT NULL,
+    Instituto INT NOT NULL,
+    Usuario INT NOT NULL,
+    PRIMARY KEY (NoEmp),
+    UNIQUE (Telefono),
+    UNIQUE (CorreoInst),
+    FOREIGN KEY (Instituto) REFERENCES Instituto (Clave),
+    FOREIGN KEY (Usuario) REFERENCES Usuario (Numero)
+);
+
+CREATE TABLE Carrera (
+    Codigo INT NOT NULL,
+    Nombre VARCHAR(80) NOT NULL,
+    Coordinador INT NOT NULL,
+    PRIMARY KEY (Codigo),
+    FOREIGN KEY (Coordinador) REFERENCES Coordinador (NoEmp)
+);
+
+CREATE TABLE Asunto (
+    Codigo INT NOT NULL,
+    Descripcion VARCHAR(250) NOT NULL,
+    PRIMARY KEY (Codigo),
+    UNIQUE (Descripcion)
+);
+
+CREATE TABLE Alumno (
+    NoControl INT NOT NULL,
+    Nombre VARCHAR(50) NOT NULL,
+    ApellidoPaterno VARCHAR(50),
+    ApellidoMaterno VARCHAR(50),
+    Semestre INT NOT NULL,
+    Telefono VARCHAR(20) NOT NULL,
+    CorreoInst VARCHAR(50) NOT NULL,
+    Usuario INT NOT NULL,
+    Carrera INT NOT NULL,
+    PRIMARY KEY (NoControl),
+    UNIQUE (Telefono),
+    UNIQUE (CorreoInst),
+    UNIQUE (Usuario),
+    FOREIGN KEY (Usuario) REFERENCES Usuario (Numero),
+    FOREIGN KEY (Carrera) REFERENCES Carrera (Codigo)
+);
+
+CREATE TABLE Miembro (
+    NoEmp INT NOT NULL,
+    Nombre VARCHAR(50) NOT NULL,
+    ApellidoPaterno VARCHAR(50),
+    ApellidoMaterno VARCHAR(50),
+    Telefono VARCHAR(20) NOT NULL,
+    Tipo CHAR(1) NOT NULL,
+    CorreoInst VARCHAR(50) NOT NULL,
+    Instituto INT NOT NULL,
+    Usuario INT NOT NULL,
+    PRIMARY KEY (NoEmp),
+    UNIQUE (Telefono),
+    UNIQUE (CorreoInst),
+    UNIQUE (Usuario),
+    FOREIGN KEY (Instituto) REFERENCES Instituto (Clave),
+    FOREIGN KEY (Usuario) REFERENCES Usuario (Numero)
+);
+
+CREATE TABLE Sesion (
+	Folio INT NOT NULL,
+    Fecha DATE NOT NULL,
+    Hora TIME NOT NULL,
+    Lugar VARCHAR(50) NOT NULL,
+    PRIMARY KEY (Folio),
+    INDEX idx_Sesion_Fecha_Hora (Fecha, Hora)
+);
+
+CREATE TABLE Asistencia (
+    Sesion INT NOT NULL,
+    Miembro INT NOT NULL,
+    PRIMARY KEY (Sesion, Miembro),
+    FOREIGN KEY (Sesion) REFERENCES Sesion (Folio),
+    FOREIGN KEY (Miembro) REFERENCES Miembro (NoEmp)
+);
+
+CREATE TABLE Solicitud (
+    Numero INT NOT NULL,
+    Alumno INT NOT NULL,
+    Asunto INT NOT NULL,
+    Fecha DATE NOT NULL,
+    Motivos VARCHAR(250),
+    EvaluacionInicial VARCHAR(250),
+    PRIMARY KEY (Numero),
+    FOREIGN KEY (Alumno) REFERENCES Alumno (NoControl),
+    FOREIGN KEY (Asunto) REFERENCES Asunto (Codigo)
+);
+
+CREATE TABLE Sustento (
+    Folio INT NOT NULL,
+    Solicitud INT NOT NULL,
+    Documento LONGBLOB NOT NULL,
+    PRIMARY KEY (Folio, Solicitud),
+    FOREIGN KEY (Solicitud) REFERENCES Solicitud (Numero)
+);
+
+CREATE TABLE Estatus (
+    Solicitud INT NOT NULL,
+    Fecha DATE NOT NULL,
+    Hora TIME NOT NULL,
+    Usuario INT NOT NULL,
+    Estatus CHAR(1) NOT NULL,
+    Sesion INT NULL,
+    PRIMARY KEY (Fecha, Hora, Solicitud),
+    FOREIGN KEY (Solicitud) REFERENCES Solicitud (Numero),
+    FOREIGN KEY (Usuario) REFERENCES Usuario (Numero),
+    FOREIGN KEY (Sesion) REFERENCES Sesion (Folio)
+);
+
+-- PROCEDIMIENTOS ALMACENADOS
+
+DELIMITER //
+
+CREATE PROCEDURE InsertarUsuario (IN NombreUsuarioParam NVARCHAR(50), IN Contrasena NVARCHAR(30), OUT Numero INT)
+BEGIN
+    DECLARE NumeroTemp INT;
+    
+    SELECT MAX(Numero) INTO NumeroTemp FROM Usuario;
+    SET Numero = IFNULL(NumeroTemp + 1, 1);
+    
+    IF EXISTS (SELECT * FROM Usuario WHERE NombreUsuario = NombreUsuarioParam) THEN
+        SET Numero = -1;
+    ELSE
+        INSERT INTO Usuario (Numero, NombreUsuario, Contrasena)
+        VALUES (Numero, NombreUsuarioParam, Contrasena);
+    END IF;
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE PROCEDURE InsertarAlumno(
+    IN NoControl INT,
+    IN Nombre NVARCHAR(50),
+    IN ApellidoPaterno NVARCHAR(50),
+    IN ApellidoMaterno NVARCHAR(50),
+    IN Semestre INT,
+    IN Telefono VARCHAR(20),
+    IN CorreoInst NVARCHAR(50),
+    IN Carrera INT,
+    IN NombreUsuario NVARCHAR(50),
+    IN Contrasena NVARCHAR(30)
 )
-go
-create table Usuario
-(
-	Numero int not null,
-	NombreUsuario nvarchar (50) unique not null,
-	Contrasena nvarchar (30) not null,
-)
-go
-create table Miembro
-(
-	NoEmp int not null,
-	Nombre nvarchar(50) not null,
-	ApellidoPaterno nvarchar (50) null,
-	ApellidoMaterno nvarchar (50) null,
-	Telefono varchar (20) unique not null,
-	Tipo char(1) not null,
-	CorreoInst nvarchar (50) unique not null,
-	Instituto int not null,
-	Usuario int unique not null,
-)
-go
-create table�Sesion
-(
-	Fecha date not null,
-	Hora time not null,
-	Lugar nvarchar (50) not null,
-)
-go
-create table Asistencia 
-(
-	Fecha date not null,
-	Hora time not null,
-	Miembro int not null,
-)
-go
-create table Coordinador
-(
-	NoEmp int not null,
-	Nombre nvarchar(50) not null,
-	ApellidoPaterno nvarchar (50) null,
-	ApellidoMaterno nvarchar (50) null,
-	Telefono varchar (20) unique not null,
-	CorreoInst nvarchar (50) unique not null,
-	Instituto int not null,
-	Usuario int unique not null,
-)
-go
-create table Carrera
-(
-	Codigo int not null,
-	Nombre nvarchar(80) not null,
-	Coordinador int not null,
-)
-go
-create table Alumno
-(
-	NoControl int not null,
-	Nombre nvarchar(50) not null,
-	ApellidoPaterno nvarchar (50) null,
-	ApellidoMaterno nvarchar (50) null,
-	Semestre int not null,
-	Telefono varchar (20) unique not null,
-	CorreoInst nvarchar (50) unique not null,
-	Usuario int unique not null,
-	Carrera int not null,
-)
-go
-create table Solicitud
-(
-	Numero int not null,
-	Alumno int not null,
-	Asunto int not null,
-	Fecha date not null,
-	Motivos nvarchar (250),
-	EvaluacionInicial nvarchar (250),
-)
-go
-create table Asunto
-(
-	Codigo int not null,
-	Descripcion nvarchar(250) unique not null,
-)
-go
-create table Sustento
-(
-	Folio int not null,
-	Solicitud int not null,
-	Documento varbinary (MAX) not null,
-)
-go
-create table Estatus
-(
-	Solicitud int not null,
-	Fecha date not null,
-	Hora time not null,
-	Usuario int not null,
-	Estatus char(1) not null,
-)
-go
-create table Estatuses
-(
-	Clave char(1) not null,
-	Descripcion nvarchar(10) not null
-)
-go
+BEGIN
+    DECLARE Num_Usuario INT;
+    DECLARE Repetido BIT DEFAULT 0;
 
--- CREACION DE PRIMARY KEYS
-alter table Sustento add constraint PK_Sustento_FolioSolicitud primary key (Folio, Solicitud)
-alter table Estatus add constraint PK_Estatus_FechaHoraSolicitud primary key (Fecha, Hora, Solicitud)
-alter table Alumno add constraint PK_Alumno_NoControl primary key (NoControl)
-alter table Usuario add constraint PK_Usuario_Numero primary key (Numero)
-alter table Instituto add constraint PK_Instituto_Clave primary key (Clave)
-alter table Sesion add constraint PK_Sesion_FechaHora primary key (Fecha, Hora)
-alter table Miembro add constraint PK_Miembro_NoEmp primary key (NoEmp)
-alter table Asunto add constraint PK_Asuntos_Codigo primary key (Codigo)
-alter table Carrera add constraint PK_Carrera_Codigo primary key (Codigo)
-alter table Coordinador add constraint PK_Coordinador_NoEmp primary key (NoEmp)
-alter table Asistencia add constraint PK_Asistencia_FechaNoEmp primary key (Fecha, Hora, Miembro)
-alter table Solicitud add constraint PK_Solicitud_Numero primary key (Numero)
-alter table Estatuses add constraint PK_Estatuses_Codigo primary key (Clave)
-go
+    -- Verificar si los datos son repetidos
+    IF EXISTS (SELECT 1 FROM Alumno WHERE NoControl = NoControl OR Telefono = Telefono OR CorreoInst = CorreoInst) THEN
+        SET Repetido = 1;
+    END IF;
 
--- CREACION DE FOREIGN KEYS
+    -- Insertar el usuario
+    IF Repetido = 0 THEN
+        CALL InsertarUsuario(NombreUsuario, Contrasena, Num_Usuario);
 
-alter table Alumno add constraint FK_Alumno_Usuario foreign key (Usuario) references Usuario (Numero),
-					   constraint FK_Alumno_Carrera foreign key (Carrera) references Carrera (Codigo)
-alter table Coordinador add constraint FK_Coordinador_Instituto foreign key (Instituto) references Instituto (Clave),
-							constraint FK_Coordinador_Usuario foreign key (Usuario) references Usuario (Numero)
-alter table Carrera add constraint FK_Carrera_Coordinador foreign key (Coordinador) references Coordinador (NoEmp)
-alter table Estatus add constraint FK_Estatus_Solicitud foreign key (Solicitud) references Solicitud (Numero),
-						constraint FK_Estatus_Usuario foreign key (Usuario) references Usuario(Numero)
-alter table Sustento add constraint FK_Sustento foreign key (Solicitud) references Solicitud (Numero)
-alter table Solicitud add constraint FK_Solicitud_Alumno foreign key (Alumno) references Alumno (NoControl),
-						 constraint FK_Solicitud_Asunto foreign key (Asunto) references Asunto (Codigo)
-alter table Asistencia add constraint FK_Asistencia_SesionFecha foreign key (Fecha) references Sesion (Fecha),
-						   constraint FK_Asistencia_SesionHora foreign key (Hora) references Sesion (Hora),
-						   constraint FK_Asistencia_Miembro foreign key (Miembro) references Miembro (NoEmp)
-alter table Miembro add constraint FK_Empleado_Instituto foreign key (Instituto) references Instituto (Clave),
-						constraint FK_Empleado_Usuario foreign key (Usuario) references Usuario (Numero)
-alter table Estatus add constraint FK_Estatus_Estatuses foreign key (Estatus) references Estatuses (Clave)
-go
+        -- Verificar si se generó un nuevo número de usuario válido
+        IF Num_Usuario IS NULL THEN
+            SET Num_Usuario = 1;
+        END IF;
 
--- PROCEDIMIENTO PARA INSERTAR REGISTROS
+        -- Insertar el alumno
+        INSERT INTO Alumno (NoControl, Nombre, ApellidoPaterno, ApellidoMaterno, Carrera, Semestre, Telefono, CorreoInst, Usuario)
+        VALUES (NoControl, Nombre, ApellidoPaterno, ApellidoMaterno, Carrera, Semestre, Telefono, CorreoInst, Num_Usuario);
+    ELSE
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DATOS REPETIDOS';
+    END IF;
+END //
 
-create proc  InsertarUsuario @NombreUsuario nvarchar(50), @Contrasena nvarchar(30), @Numero int output
-as
-	if exists(select * from Usuario where NombreUsuario = @NombreUsuario)
-	begin
-		set @Numero = -1
-	end
-	else
-	begin
-		select @Numero = MAX(Numero) + 1 from Usuario
-		if @Numero is null 
-			set @Numero = 1
+DELIMITER ;
 
-		insert into Usuario (Numero, NombreUsuario, Contrasena)
-		values (@Numero, @NombreUsuario, @Contrasena)
-	end
-go
+DELIMITER //
 
-ALTER procedure InsertarAlumno @NoControl int , @Nombre nvarchar(50), @ApellidoPaterno nvarchar (50), @ApellidoMaterno nvarchar (50), @Semestre int,
-								@Telefono varchar(20), @CorreoInst nvarchar(50), @Carrera int, @NombreUsuario nvarchar(50), @Contrasena nvarchar(30)
-as
-	declare @Num_Usuario int
-	exec InsertarUsuario @NombreUsuario, @Contrasena, @Num_Usuario output
+CREATE PROCEDURE InsertarCoordinador(
+	IN NoEmp INT,
+    IN NombreCoordinador NVARCHAR(50),
+    IN ApellidoPaterno NVARCHAR(50),
+    IN ApellidoMaterno NVARCHAR(50),
+    IN Telefono VARCHAR(20),
+    IN CorreoInst NVARCHAR(50),
+    IN InstitutoID INT,
+    IN NombreUsuario NVARCHAR(50),
+    IN Contrasena NVARCHAR(30)
+)
+BEGIN
+    DECLARE Num_Usuario INT;
+    DECLARE Repetido BIT DEFAULT 0;
 
-	declare @Repetido bit
-	set @Repetido = 0
-	if not exists(select NoControl from Alumno where NoControl = @NoControl) set @Repetido = 1
-	if not exists(select Telefono from Alumno where Telefono = @Telefono) set @Repetido = 1
-	if not exists(select CorreoInst from Alumno where CorreoInst = @CorreoInst) set @Repetido = 1
+    -- Verificar si los datos son repetidos
+    IF EXISTS (SELECT 1 FROM Coordinador WHERE Coordinador.NoEmp = NoEmp OR Telefono = Telefono OR CorreoInst = CorreoInst) THEN
+        SET Repetido = 1;
+    END IF;
 
-	if @Repetido = 1
-	begin
-		raiserror('DATOS REPETIDOS', 16, 1)
-		rollback tran
-	end
-	
-	insert into Alumno (NoControl, Nombre, ApellidoPaterno, ApellidoMaterno, Carrera, Semestre, Telefono, CorreoInst, Usuario)
-	values (@NoControl, @Nombre, @ApellidoPaterno, @ApellidoMaterno, @Carrera, @Semestre, @Telefono, @CorreoInst, @Num_Usuario)
-go
+    -- Insertar el usuario
+    IF Repetido = 0 THEN
+        CALL InsertarUsuario(NombreUsuario, Contrasena, Num_Usuario);
 
+        -- Verificar si se generó un nuevo número de usuario válido
+        IF Num_Usuario IS NULL THEN
+            SET Num_Usuario = 1;
+        END IF;
 
-declare @Numero int
-exec InsertarUsuario 'jbanuelos', '123456', @Numero
-exec InsertarUsuario 'kguerrero', '654321', @Numero
-exec InsertarUsuario 'avelazquez', '246810', @Numero
-exec InsertarUsuario 'dfelix', '3691215', @Numero
-exec InsertarUsuario 'epadilla', '361215', @Numero
+        -- Insertar el alumno
+        INSERT INTO Alumno (NoControl, Nombre, ApellidoPaterno, ApellidoMaterno, Carrera, Semestre, Telefono, CorreoInst, Usuario)
+        VALUES (NoControl, Nombre, ApellidoPaterno, ApellidoMaterno, Carrera, Semestre, Telefono, CorreoInst, Num_Usuario);
+    ELSE
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DATOS REPETIDOS';
+    END IF;
 
-select * from Usuario
-/*CREATE PROC [dbo].[ArticuloRegistrar] @nombre NVARCHAR(50), @descripcion NVARCHAR(50), @precio NUMERIC(12,2), @existencia INT, @clave INT OUTPUT
-AS
-	INSERT INTO ARTICULO (Nombre, Descripcion,Precio,Existencia) VALUES (@nombre, @descripcion,@precio,@existencia)
-	SELECT @clave = SCOPE_IDENTITY()
-GO*/
-go
+    -- Insertar el usuario
+    IF Repetido = 0 THEN
+        CALL InsertarUsuario(NombreUsuario, Contrasena, Num_Usuario);
+
+        -- Verificar si se generó un nuevo número de usuario válido
+        IF Num_Usuario IS NULL THEN
+            SET Num_Usuario = 1;
+        END IF;
+
+    -- Obtener el número de coordinador
+    SELECT MAX(NoEmp) + 1 INTO NumCoordinador FROM Coordinador;
+    IF NumCoordinador IS NULL THEN
+        SET NumCoordinador = 1;
+    END IF;
+
+    -- Insertar el coordinador
+    INSERT INTO Coordinador (NoEmp, Nombre, ApellidoPaterno, ApellidoMaterno, Telefono, CorreoInst, Instituto, Usuario)
+    VALUES (NumCoordinador, NombreCoordinador, ApellidoPaterno, ApellidoMaterno, Telefono, CorreoInst, InstitutoID, NumUsuario);
+
+    SELECT NumCoordinador AS 'CoordinadorID';
+END //
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE PROCEDURE InsertarMiembro(
+    IN NombreMiembro NVARCHAR(50),
+    IN ApellidoPaterno NVARCHAR(50),
+    IN ApellidoMaterno NVARCHAR(50),
+    IN Telefono VARCHAR(20),
+    IN Tipo CHAR(1),
+    IN CorreoInst NVARCHAR(50),
+    IN InstitutoID INT,
+    IN NombreUsuario NVARCHAR(50),
+    IN Contrasena NVARCHAR(30)
+)
+BEGIN
+    DECLARE NumUsuario INT;
+    DECLARE NumMiembro INT;
+
+    -- Insertar el usuario
+    CALL InsertarUsuario(NombreUsuario, Contrasena, NumUsuario);
+
+    -- Obtener el número de miembro
+    SELECT MAX(NoEmp) + 1 INTO NumMiembro FROM Miembro;
+    IF NumMiembro IS NULL THEN
+        SET NumMiembro = 1;
+    END IF;
+
+    -- Insertar el miembro
+    INSERT INTO Miembro (NoEmp, Nombre, ApellidoPaterno, ApellidoMaterno, Telefono, Tipo, CorreoInst, Instituto, Usuario)
+    VALUES (NumMiembro, NombreMiembro, ApellidoPaterno, ApellidoMaterno, Telefono, Tipo, CorreoInst, InstitutoID, NumUsuario);
+
+    SELECT NumMiembro AS 'MiembroID';
+END //
+
+DELIMITER ;
+
 
 -- DATOS NECESARIOS
+
+insert into Instituto(Clave, Nombre, Direccion, PaginaWeb) values
+ (101 , 'Instituto Tecnológico de Culiacán', 'Juan de Dios Bátiz #310 Pte., Col. Guadalupe', 'https://culiacan.tecnm.mx/'),
+ (102 , 'Instituto Tecnológico de Eldorado', 'Av. Tecnológico S/N, Col. Rubén Jaramillo', 'http://www.itseldorado.edu.mx/'),
+ (103 , 'Instituto Tecnológico de Querétaro', 'Av. Tecnológico S/N, Col. Centro Histórico', 'https://queretaro.tecnm.mx/'),
+ (104 , 'Instituto Tecnológico de Tijuana', 'Calz. Del Tecnológico S/N, Fracc. Tomas Aquino', 'https://www.tijuana.tecnm.mx/');
+select * from Instituto;
 
 insert into Asunto(Codigo, Descripcion) values
  (1, 'Solicitud de baja temporar del semestre'),
  (2, 'Solicitud de baja permanente del semestre'),
  (3, 'Solicitud de baja de materia'),
- (4, 'Solicitud de extensi�n de periodos para la culminaci�n de la carrera.'),
- (5, 'Pertinencia de las l�neas y de los espacios para la investigaci�n.'),
- (6, 'Priorizaci�n y asignaci�n de recursos para los proyectos, en t�rminos de su impacto institucional y en el entorno.'),
- (7, 'La incorporaci�n y/o cancelaci�n de prerrequisito de asignaturas.'),
- (8, 'Atenci�n a una inconformidad en asignaci�n de calificaci�n.'),
+ (4, 'Solicitud de extensión de periodos para la culminación de la carrera.'),
+ (5, 'Pertinencia de las líneas y de los espacios para la investigación.'),
+ (6, 'Priorización y asignación de recursos para los proyectos, en términos de su impacto institucional y en el entorno.'),
+ (7, 'La incorporación y/o cancelación de prerrequisito de asignaturas.'),
+ (8, 'Atención a una inconformidad en asignación de calificación.'),
  (9, 'Solicitud para reingreso al instituto.'),
- (10, 'Designaci�n de un (una) profesor(a) o comisi�n para evaluaci�n de asignaturas en los casos donde el docente no concluya el curso.'),
+ (10, 'Designación de un (una) profesor(a) o comisión para evaluación de asignaturas en los casos donde el docente no concluya el curso.'),
  (11, 'Propuesta de profesores(as) para impartir cursos.'),
- (12, 'Propuesta de profesores(as) y horarios en educaci�n no escolarizada a distancia y mixta.'),
- (13, 'Designaciones de asesores internos y externos en el �mbito del proceso de residencia rrofesional.'),
- (14, 'Propuestas de acciones remediales de apoyo a los planes y programas de estudio.')
-select * from Asunto order by Codigo
+ (12, 'Propuesta de profesores(as) y horarios en educación no escolarizada a distancia y mixta.'),
+ (13, 'Designaciones de asesores internos y externos en el ámbito del proceso de residencia rrofesional.'),
+ (14, 'Propuestas de acciones remediales de apoyo a los planes y programas de estudio.');
+select * from Asunto order by Codigo;
 
 insert into Estatuses(Clave, Descripcion) values
  ('P', 'Pendiente de evaluar'),
  ('E', 'Evaluada'),
  ('F', 'Falta sustento'),
- ('S', 'Pendiente de sesi�n'),
+ ('S', 'Pendiente de sesión'),
  ('O', 'Postpuesta'),
  ('A', 'Aprobada'),
- ('N', 'No aprobada')
- select * from Estatuses
+ ('N', 'No aprobada');
+ select * from Estatuses;
+ 
+ insert into Usuario(Numero, NombreUsuario, Contrasena) values
+  (2, 'e_bajaras', '123456'),
+  (3, 'r_amador', '123456'),
+  (4, 's_castana', '123456'),
+  (5, 'e_cazares', '123456'),
+  (6, 'j_beltran', '123456'),
+  (7, 'e_juarez', '123456'),
+  (8, 'j_palacios', '123456'),
+  (9, 'b_patron', '123456');
+select * from Usuario;
+
+insert into Coordinador(NoEmp, Nombre, ApellidoPaterno, ApellidoMaterno, Telefono, CorreoInst, Instituto, Usuario) values
+ (1001, 'Edna Rocío', 'Barajas', 'Olivas', '6674859367', 'coorsistemas@culiacan.tecnm.mx', 101, 2),
+ (1002, 'Rosa Icela', 'Amador', 'Cázares', '6678493826', 'coorindustrial@culiacan.tecnm.mx', 101, 3),
+ (1003, 'Segundo', 'Castaña', 'Gallo', '6675463786', 'coorbioquimica@itseldorado.edu.mx', 102, 4),
+ (1004, 'Everd Luis', 'Cázares', 'Domínguez', '6678985766', 'coorsistemas@itseldorado.edu.mx', 102, 5),
+ (1005, 'Jessica Guadalupe', 'Beltrán', 'Ramírez', '4427684956', 'coorbioquimica@queretaro.tecnm.mx', 103, 6),
+ (1006, 'Eliseo', 'Juárez', 'López', '4438675849', 'coorelectronica@queretaro.tecnm.mx', 103, 7),
+ (1007, 'Juan Enrique', 'Palacios', 'Quintero', '6648786757', 'cooraeronautica@tijuana.tecnm.m', 104, 8),
+ (1008, 'Bertha Lucía', 'Patrón', 'Arellano', '6643546354', 'coormecatronica@tijuana.tecnm.m', 104, 9);
+select * from Coordinador;
+
+insert into Carrera(Codigo, Nombre, Coordinador) values
+ (10, 'Ingeniería en Sistemas Computacionales', 1001),
+ (11, 'Ingeniería en Tecnologías de la Información y Comunicaciones', 1001),
+ (12, 'Ingeniería Industrial', 1002),
+ (13, 'Ingeniería Bioquímica', 1003),
+ (14, 'Ingeniería en Sistemas Computacionales', 1004),
+ (15, 'Ingeniería Bioquímica', 1005),
+ (16, 'Ingeniería Eléctrica', 1006),
+ (17, 'Ingeniería Electrónica', 1006),
+ (18, 'Ingeniería Aeronáutica', 1007),
+ (19, 'Ingeniería Mecatrónica', 1008);
+select Carrera.Codigo, Carrera.Nombre, Carrera.Coordinador, Coordinador.Nombre, Instituto.Nombre from Carrera
+inner join Coordinador on Carrera.Coordinador = Coordinador.NoEmp
+inner join Instituto on Coordinador.Instituto = Instituto.Clave;
