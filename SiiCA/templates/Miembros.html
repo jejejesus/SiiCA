@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es_MX">
+<head>
+    <meta charset="UTF-8">
+    <title>SiiCA - Miembros</title>
+    <link rel="shortcut icon" href="{% static 'imagenes/IconoSiiCA.ico' %}"/>
+     <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.rtl.css' %}">
+    <link rel="stylesheet" href="{% static 'css/iconos/uicons-regular-rounded.css' %}">
+
+
+</head>
+<body>
+    <nav class="sidebar close">
+        <header>
+            <div class="image-text" style="margin-top: 15px" >
+                <span class="image">
+                    <a href="{% url 'miembros_principal' %}"><img src="{% static 'imagenes/LogoSiiCA.png' %}"></a>
+                </span>
+
+                <div class="text logo-text">
+                    <a href="{% url 'miembros_principal' %}"><img src="{% static 'imagenes/LetrasSiiCA.png' %}" alt="" style="height: 30px"></a>
+                </div>
+            </div>
+            <i class='fi-rr-angle-small-right toggle' style="color: #DDD"></i>
+        </header>
+
+        <div class="menu-bar">
+            <div class="menu">
+
+                <ul class="menu-links">
+                    <li class="nav-link">
+                        <a href="{% url 'miembro_consulta' %}">
+                            <i class='fi-rr-search-alt icon' ></i>
+                            <span class="text nav-text">Consultar solicitudes</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-link">
+                        <a href="{% url 'error_404' %}">
+                            <i class='fi-rr-file-chart-line icon' ></i>
+                            <span class="text nav-text">Solicitudes votadas</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-link">
+                        <a href="{% url 'secretario_principal' %}">
+                            <i class='fi-rr-book-alt icon' ></i>
+                            <span class="text nav-text">Secretario técnico</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-link">
+                        <a href="{% url 'presidente_principal' %}">
+                            <i class='fi-rr-id-card-clip-alt icon' ></i>
+                            <span class="text nav-text">Presidente</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="">
+                <li class="nav-link">
+                    <i class='fi-rr-circle-user icon' ></i>
+                    <span class="text nav-text">{{ request.user.first_name }}</span>
+                </li>
+
+                <li class="nav-link">
+                    <a href="{% url 'miembro_cuenta' %}">
+                        <i class='fi-rr-user-gear icon' ></i>
+                        <span class="text nav-text">Cuenta</span>
+                    </a>
+                </li>
+
+                <li class="nav-link">
+                    <a href="{% url 'logout' %}">
+                        <i class='fi-rr-sign-out-alt icon' ></i>
+                        <span class="text nav-text">Cerrar sesión</span>
+                    </a>
+                </li>
+            </div>
+        </div>
+
+
+    </nav>
+
+    <section class="home">
+
+        <h1 class="text" style="text-align: center; margin-bottom: 0px" ><b>Miembros de Comité Académico</b></h1>
+
+        <div align="center" class="container cuadro">
+             <img  style="margin-top: 20px; margin-bottom: 20px" src="{% static 'imagenes/LogoSiiCA.png' %}"/>
+        </div>
+
+        <div class="">
+            <h6 style="text-align: center">
+                © Tecnológico Nacional de México, 2023
+            </h6>
+        </div>
+    </section>
+
+    <script src="{% static 'js/script-sidebar.js' %}"></script>
+
+</body>
+</html>
